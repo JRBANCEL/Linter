@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -13,19 +14,38 @@ import (
 	"unicode"
 )
 
-const (
-	//root = "/home/jrb/go/src/github.com/JRBANCEL/Experimental/FmtLinter/foo"
-	root = "/home/jrb/go/src/knative.dev/serving"
+var (
+	write = flag.Bool("w", false, "write result to (source) file instead of stdout")
+
+	// The prefixes of the methods that will be linted
+	allowed = []string{"Fatal", "Warn", "Sprint", "Print", "Info", "Debug", "Log", "Error", "Skip"}
 )
 
-var (
-	funcs = map[string]bool{
-		"fmt.Printf": true,
-	}
-)
+func usage() {
+	fmt.Fprintf(os.Stderr, "usage: linter [flags] [path ...]\n")
+	flag.PrintDefaults()
+}
 
 func main() {
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	flag.Usage = usage
+	flag.Parse()
+
+	for i := 0; i < flag.NArg(); i++ {
+		path := flag.Arg(i)
+		switch dir, err := os.Stat(path); {
+		case err != nil:
+			log.Fatal("Failed to stat ", path)
+		case dir.IsDir():
+			walkDir(path)
+		default:
+			log.Println("Ignoring non-directory ", path)
+		}
+	}
+}
+
+// walkDir walks a directory recursively and calls lintDir on each directory.
+func walkDir(root string) error {
+	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			return nil
 		}
@@ -33,22 +53,28 @@ func main() {
 			return filepath.SkipDir
 		}
 
-		//log.Println(info.Name(), path)
 		errors, err := lintDir(path)
 		if err != nil {
-			log.Println(err)
+			return fmt.Errorf("failed to parse %s: %w", path, err)
 		}
 
-		for p, e := range errors {
-			if err := FixFile(p, e); err != nil {
-				log.Println(err)
+		for fPath, fErrors := range errors {
+			if *write {
+				if err := fixFile(fPath, fErrors); err != nil {
+					return fmt.Errorf("failed to fix %s: %w", fPath, err)
+				}
+			} else {
+				for _, e := range fErrors {
+					fmt.Println(e)
+				}
 			}
 		}
 		return nil
 	})
 }
 
-func FixFile(path string, errors []LintError) error {
+// fixFile modifies a file to fix the linting errors.
+func fixFile(path string, errors []LintError) error {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
@@ -82,53 +108,20 @@ type LintError struct {
 	arg0Start token.Position
 	arg0End   token.Position
 
+	arg1Start token.Position
+	arg1End   token.Position
+
 	fixFunc FixFunc
 	fixArg  FixArg
 }
 
 func (e LintError) String() string {
-	//pos := e.fset.Position(e.arg0Start)
-	//fd, _ := os.Open(pos.Filename)
-	//defer fd.Close()
-
-	//fd.Seek(int64(e.arg0Start), io.SeekStart)
-	//io.Re
-	//bytes, _ := ioutil.ReadFile(pos.Filename)
-	return "" //fmt.Sprintf("%s:%d -> %s", pos.Filename, pos.Line, string(bytes[pos.Offset:e.fset.Position(e.arg0End).Offset]))
-}
-
-func (e LintError) Modify() error {
-	// TODO: this is super inefficient, it should be streamed
-
-	return nil
+	bytes, _ := ioutil.ReadFile(e.funcStart.Filename)
+	return fmt.Sprintf("%s:%d -> %s", e.funcStart.Filename, e.funcStart.Line, string(bytes[e.funcStart.Offset:e.arg1End.Offset+1]))
 }
 
 type FixArg func(str string) string
 type FixFunc func(str string) string
-
-// func FixArg(str string) string {
-// 	// Trim trailing "
-// 	str = str[:len(str)-1]
-//
-// 	// Trim %v or %s if any
-// 	if strings.HasSuffix(str, "%v") || strings.HasSuffix(str, "%s") {
-// 		str = str[:len(str)-2]
-// 	}
-//
-// 	// A space must be present at the end
-// 	if str[len(str)-1] != ' ' {
-// 		str = str + " "
-// 	}
-// 	return str + "\""
-// }
-//
-// func FixFunc(str string) string {
-// 	runes := []rune(str)
-// 	if runes[len(runes)-1] == 'f' {
-// 		runes = runes[:len(runes)-1]
-// 	}
-// 	return string(runes)
-// }
 
 func lintDir(path string) (map[string][]LintError, error) {
 	fset := &token.FileSet{}
@@ -136,18 +129,11 @@ func lintDir(path string) (map[string][]LintError, error) {
 
 	pkgs, err := parser.ParseDir(fset, path, nil, parser.AllErrors)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse the AST in %q: %w", path, err)
+		return nil, fmt.Errorf("failed to parse the AST: %w", err)
 	}
 
 	for _, pkg := range pkgs {
 		for fileName, file := range pkg.Files {
-			//conf := types.Config{Importer: importer.Default()}
-			//info := types.Info{Types: make(map[ast.Expr]types.TypeAndValue)}
-			//_, err = conf.Check(pkgName, fset, []*ast.File{file}, &info)
-			//if err != nil {
-			//	return nil, fmt.Errorf("failed to parse the types in %q: %w", fileName, err)
-			//}
-
 			errors := make([]LintError, 0)
 			for _, decl := range file.Decls {
 				ast.Walk(visitor(func(node ast.Node) bool {
@@ -193,17 +179,16 @@ func visit(node ast.Node, errors *[]LintError, fset *token.FileSet) bool {
 	}
 
 	// The second parameter must be a variable
-	_, ok = ce.Args[1].(*ast.Ident)
+	a1, ok := ce.Args[1].(*ast.Ident)
 	if !ok {
 		return true
 	}
 
 	var fixArg FixArg
-	var fixfunc FixFunc
+	var fixFunc FixFunc
 	fn := function(se)
-	check := []string{"Fatal", "Warn", "Sprint", "Print", "Info", "Debug", "Log", "Error", "Skip"}
 	found := false
-	for _, c := range check {
+	for _, c := range allowed {
 		if strings.HasPrefix(fn, c) {
 			found = true
 			break
@@ -213,13 +198,9 @@ func visit(node ast.Node, errors *[]LintError, fset *token.FileSet) bool {
 		return true
 	}
 
-	//if pkg(se) == "" {
-	//	log.Println(fset.Position(se.Pos()).Filename, fset.Position(se.Pos()).Line)
-	//}
+	// Hacky but true most of the time
+	isTest := variable(se) == "t" || variable(se) == "b"
 
-	isTest := pkg(se) == "t" || pkg(se) == "b"
-
-	//fmt.Println(pkg(se), fn)
 	if strings.HasSuffix(fn, "f") &&
 		unicode.IsUpper([]rune(fn)[0]) &&
 		(strings.HasSuffix(a0.Value, "%v\"") ||
@@ -232,7 +213,7 @@ func visit(node ast.Node, errors *[]LintError, fset *token.FileSet) bool {
 			}
 			return str + "\""
 		}
-		fixfunc = func(str string) string {
+		fixFunc = func(str string) string {
 			return strings.TrimSuffix(str, "f")
 		}
 	} else if !strings.HasSuffix(fn, "f") &&
@@ -241,42 +222,27 @@ func visit(node ast.Node, errors *[]LintError, fset *token.FileSet) bool {
 			str = strings.TrimSuffix(str, "\"")
 			str = strings.TrimSuffix(str, " ")
 			if isTest {
-				return  str + "\""
+				return str + "\""
 			}
 			return str + " \""
 		}
-		fixfunc = func(str string) string {
+		fixFunc = func(str string) string {
 			return str
 		}
 	} else {
 		return true
 	}
 
-	//t, ok := info.Types[a1].Type.(*types.Basic)
-	//isString := ok && t.Kind() == types.String
-
-	//log.Println(ce)
-	//isErrorsNew := isPkgDot(ce.Fun, "errors", "New")
-	//var isTestingError bool
-	// TODO: check pkg and method name
-
-	//pos := fset.Position(a0.Pos())
-	//end := fset.Position(a0.End())
-	//log.Printf("File: %s, Line: %d, Char: %d->%d, Pkg: %s, Name: %s, String: %t", pos.Filename, pos.Line, pos.Column, end.Column, pkg2(se), function(se), isString)
-	//pos = fset.Position(a1.Pos())
-	//end = fset.Position(a1.End())
-	//log.Printf("File: %s, Line: %d, Char: %d->%d, Pkg: %s, Name: %s, String: %t", pos.Filename, pos.Line, pos.Column, end.Column, pkg2(se), function(se), isString)
 	*errors = append(*errors, LintError{
 		fset:      fset,
 		funcStart: fset.Position(se.Pos()),
 		funcEnd:   fset.Position(se.End()),
 		arg0Start: fset.Position(a0.Pos()),
 		arg0End:   fset.Position(a0.End()),
-		fixFunc:   fixfunc,
+		arg1Start: fset.Position(a1.Pos()),
+		arg1End:   fset.Position(a1.End()),
+		fixFunc:   fixFunc,
 		fixArg:    fixArg,
-		//arg1Start: fset.Position(a1.Pos()),
-		//arg1End:   fset.Position(a1.End()),
-		//isString:  isString,
 	})
 	return true
 }
@@ -296,7 +262,7 @@ func name(expr ast.Expr) string {
 	return id.Name
 }
 
-func pkg(expr ast.Expr) string {
+func variable(expr ast.Expr) string {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok || sel == nil {
 		return ""

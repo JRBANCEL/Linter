@@ -1,0 +1,10 @@
+package foo
+
+import (
+	"fmt"
+)
+
+func bar() string {
+	test := "baz"
+	return fmt.Sprint("YOLO: ", test)
+}
