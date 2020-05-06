@@ -217,7 +217,8 @@ func visit(node ast.Node, errors *[]LintError, fset *token.FileSet) bool {
 		fixFunc = func(str string) string {
 			return strings.TrimSuffix(str, "f")
 		}
-	} else if unicode.IsUpper([]rune(fn)[0]) {
+	} else if !strings.HasSuffix(fn, "f") &&
+		unicode.IsUpper([]rune(fn)[0]) {
 		fixArg = func(str string) string {
 			str = strings.TrimSuffix(str, "\"")
 			str = strings.TrimSuffix(str, " ")

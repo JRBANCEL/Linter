@@ -19,3 +19,8 @@ func SprintThreeArgs() string {
 	arg1 := "baz"
 	return fmt.Sprintf("YOLO: %v and %v", arg0, arg1)
 }
+
+func SprintfPctQ() {
+	path := "/foo/bar"
+	fmt.Println(fmt.Sprintf("Deleting %q", path))
+}
