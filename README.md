@@ -1,4 +1,4 @@
-![Go Report Card](https://goreportcard.com/badge/github.com/JRBANCEL/Linter)
+[![Go Report Card](https://goreportcard.com/badge/github.com/JRBANCEL/Linter)](https://goreportcard.com/report/github.com/JRBANCEL/Linter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # What?
