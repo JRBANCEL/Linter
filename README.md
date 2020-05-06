@@ -12,3 +12,12 @@ There are some interesting edge cases, for example `testing.T.Fatal` behaves dif
 The main reason is for consistency across a code base.
 
 Also, variadic functions are very marginally faster: see [benchmark](https://github.com/JRBANCEL/Experimental/blob/master/FmtBenchmark/output.txt).
+
+# Use
+To display the errors:
+
+`linter [path to directory containing Go package]`
+
+To fix the file in place (make sure to have a backup of the files):
+
+`linter -w [path to directory containing Go package]`
