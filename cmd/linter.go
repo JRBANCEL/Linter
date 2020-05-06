@@ -111,8 +111,8 @@ type LintError struct {
 	arg1Start token.Position
 	arg1End   token.Position
 
-	fixFunc FixFunc
-	fixArg  FixArg
+	fixFunc fixFunc
+	fixArg  fixArg
 }
 
 func (e LintError) String() string {
@@ -120,8 +120,8 @@ func (e LintError) String() string {
 	return fmt.Sprintf("%s:%d -> %s", e.funcStart.Filename, e.funcStart.Line, string(bytes[e.funcStart.Offset:e.arg1End.Offset+1]))
 }
 
-type FixArg func(str string) string
-type FixFunc func(str string) string
+type fixArg func(str string) string
+type fixFunc func(str string) string
 
 func lintDir(path string) (map[string][]LintError, error) {
 	fset := &token.FileSet{}
@@ -184,8 +184,8 @@ func visit(node ast.Node, errors *[]LintError, fset *token.FileSet) bool {
 		return true
 	}
 
-	var fixArg FixArg
-	var fixFunc FixFunc
+	var fixArg fixArg
+	var fixFunc fixFunc
 	fn := function(se)
 	found := false
 	for _, c := range allowed {
