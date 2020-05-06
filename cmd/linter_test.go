@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -19,15 +18,14 @@ func TestLinter(t *testing.T) {
 	}
 
 	for _, in := range matches {
-		gld := in
-		if strings.HasSuffix(in, ".input") {
-			gld = in[:len(in)-len(".input")] + ".golden"
-		}
-		runTest(t, in, gld)
-		if in != gld {
-			// Check idempotence
-			runTest(t, gld, gld)
-		}
+		gld := in[:len(in)-len(".input")] + ".golden"
+		t.Run(in, func(t *testing.T) {
+			runTest(t, in, gld)
+			if in != gld {
+				// Check idempotence
+				runTest(t, gld, gld)
+			}
+		})
 	}
 }
 
@@ -54,7 +52,7 @@ func runTest(t *testing.T, in, gld string) {
 	assertOk(t, err)
 	if !bytes.Equal(outBytes, gldBytes) {
 		t.Errorf(
-			"Output file doesn't match golden file.\n-- Input:\n%s-- Output:\n%s-- Golden:\n%s",
+			"Output file doesn't match golden file.\n-- Input:\n%s\n-- Output:\n%s\n-- Golden:\n%s\n",
 			string(inBytes),
 			string(outBytes),
 			string(gldBytes))

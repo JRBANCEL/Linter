@@ -1,0 +1,20 @@
+package test
+
+import (
+	"log"
+)
+
+func PrintlnOneArg() {
+	log.Println("YOLO")
+}
+
+func PrintlnTwoArgs() {
+	arg := "test"
+	log.Sprintln("YOLO", arg)
+}
+
+func PrintlnThreeArgs() {
+	arg0 := "test"
+	arg1 := "yolo"
+	log.Sprintln("YOLO", arg0, arg1)
+}

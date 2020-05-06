@@ -1,0 +1,20 @@
+package test
+
+import (
+	"fmt"
+)
+
+func SprintlnOneArg() string {
+	return fmt.Sprintln("YOLO")
+}
+
+func SprintlnTwoArgs() string {
+	arg := "test"
+	return fmt.Sprintln("YOLO", arg)
+}
+
+func SprintlnThreeArgs() string {
+	arg0 := "test"
+	arg1 := "yolo"
+	return fmt.Sprintln("YOLO", arg0, arg1)
+}

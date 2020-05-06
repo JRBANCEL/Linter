@@ -1,0 +1,21 @@
+package test
+
+import (
+	"log"
+)
+
+func PrintfTwoArgsSpace() {
+	arg := "test"
+	log.Print("YOLO: ", arg)
+}
+
+func PrintfTwoArgsNoSpace() {
+	arg := "test"
+	log.Print("YOLO: ", arg)
+}
+
+func PrintfThreeArgs() {
+	arg0 := "test"
+	arg1 := "yolo"
+	log.Printf("YOLO %v and %v", arg0, arg1)
+}

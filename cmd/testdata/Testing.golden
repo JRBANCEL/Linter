@@ -1,0 +1,37 @@
+package test
+
+import (
+	"testing"
+)
+
+func TestFatatfTwoArgsSpace(t *testing.T) {
+	arg := "test"
+	t.Fatal("YOLO:", arg)
+}
+
+func TestFatatfTwoArgsNoSpace(t *testing.T) {
+	arg := "test"
+	t.Fatal("YOLO:", arg)
+}
+
+func TestFatalfThreeArgs(t *testing.T) {
+	arg0 := "test"
+	arg1 := "yolo"
+	t.Fatalf("YOLO %v and %v", arg0, arg1)
+}
+
+func BenchmarkInfofTwoArgsSpace(b *testing.B) {
+	arg := "test"
+	b.Info("YOLO:", arg)
+}
+
+func BenchmarkInfofTwoArgsNoSpace(b *testing.B) {
+	arg := "test"
+	b.Info("YOLO:", arg)
+}
+
+func BenchmarkInfofThreeArgs(b *testing.B) {
+	arg0 := "test"
+	arg1 := "yolo"
+	b.Infof("YOLO %v and %v", arg0, arg1)
+}

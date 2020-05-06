@@ -1,0 +1,21 @@
+package test
+
+import (
+	"fmt"
+)
+
+func SprintTwoArgsPctV() string {
+	arg := "baz"
+	return fmt.Sprintf("YOLO: %v", arg)
+}
+
+func SprintTwoArgsPctS() string {
+	arg := "baz"
+	return fmt.Sprintf("YOLO: %s", arg)
+}
+
+func SprintThreeArgs() string {
+	arg0 := "baz"
+	arg1 := "baz"
+	return fmt.Sprintf("YOLO: %v and %v", arg0, arg1)
+}

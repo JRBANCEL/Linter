@@ -1,0 +1,11 @@
+package test
+
+import (
+	"fmt"
+)
+
+// Errorf is ignored, we should suggest to use %w instead of %v
+func Errorf() error {
+	msg := "Something failed :-|"
+	return fmt.Errorf("YOLO: %v", msg)
+}
